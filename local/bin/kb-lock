@@ -1,0 +1,5 @@
+#!/bin/sh
+# kb-lock - start hyprlock once (hypridle lock_cmd; Super+L goes through loginctl lock-session -> hypridle).
+# Draw at once, no fade-in: keys typed while it loaded the wallpaper were lost (2026-10-05). Verbose log for diagnosis.
+pidof hyprlock >/dev/null && exit 0
+exec hyprlock --immediate-render --no-fade-in --verbose > "${XDG_RUNTIME_DIR:-/tmp}/hyprlock.log" 2>&1

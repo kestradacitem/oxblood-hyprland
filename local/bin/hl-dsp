@@ -1,0 +1,10 @@
+#!/bin/sh
+# hl-dsp LUA [LEGACY...] - run a Hyprland dispatcher in both config modes.
+# Lua config (hyprland.lua, required from Hyprland 0.57): `hyprctl dispatch` takes a Lua dispatcher,
+# e.g. hl-dsp 'hl.dsp.window.close()'. If that isn't accepted (a legacy hyprland.conf session),
+# the optional old-syntax arguments are dispatched instead, e.g. hl-dsp 'hl.dsp.window.close()' killactive
+r=$(hyprctl dispatch "$1" 2>&1)
+[ "$r" = ok ] && exit 0
+shift
+[ $# -gt 0 ] && exec hyprctl dispatch "$@" >/dev/null
+exit 1

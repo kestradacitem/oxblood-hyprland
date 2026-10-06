@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Auto-unmute a speaker or mic whenever its volume changes (keys, panel slider, apps).
+# Pressing mute alone (volume unchanged) still keeps it muted.
+declare -A last
+
+snapshot() {
+    local kind=$1
+    pactl -f json list "${kind}s" | jq -r '.[] | select(.name | endswith(".monitor") | not)
+        | "\(.name)\t\(.mute)\t\([.volume[].value] | join(","))"'
+}
+
+check() {
+    local kind=$1 name mute vol
+    while IFS=$'\t' read -r name mute vol; do
+        if [[ -n ${last[$kind:$name]} && ${last[$kind:$name]} != "$vol" && $mute == true ]]; then
+            pactl "set-$kind-mute" "$name" 0
+        fi
+        last[$kind:$name]=$vol
+    done < <(snapshot "$kind")
+}
+
+check sink
+check source
+pactl subscribe | while read -r line; do
+    case $line in
+        *"on sink #"*) check sink ;;
+        *"on source #"*) check source ;;
+    esac
+done

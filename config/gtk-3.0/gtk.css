@@ -1,0 +1,47 @@
+/* kb theme: OLED black + vampiric red (wallpaper border #5f0d11). Backup: ~/.config/kb-theme-backup-2026-10-02 */
+@define-color accent_bg_color #5f0d11;
+@define-color accent_fg_color #ffffff;
+@define-color accent_color #e04450;
+@define-color destructive_bg_color #9e1b24;
+@define-color destructive_color #e8303c;
+@define-color window_bg_color #000000;
+@define-color window_fg_color #e8dede;
+@define-color view_bg_color #000000;
+@define-color view_fg_color #e8dede;
+@define-color headerbar_bg_color #000000;
+@define-color headerbar_fg_color #e8dede;
+@define-color headerbar_backdrop_color #000000;
+@define-color sidebar_bg_color #0a0606;
+@define-color sidebar_backdrop_color #0a0606;
+@define-color card_bg_color #120a0a;
+@define-color card_fg_color #e8dede;
+@define-color dialog_bg_color #0c0707;
+@define-color dialog_fg_color #e8dede;
+@define-color popover_bg_color #0c0707;
+@define-color popover_fg_color #e8dede;
+
+/* ===== UNIVERSAL WINDOW-CONTROL RULE (kb 2026-10-03) =====
+   Every window, whoever draws it (hyprbars / GTK3 / GTK4+libadwaita), uses the same buttons:
+   order minimize, maximize, close on the right; 16 px circle, 10 px icon, 8 px between circles,
+   10 px from the right edge, centred vertically; min/max #241112 on #e8dede, close #5f0d11 on #fff;
+   hover #3a1a1c / #7a1218; identical when the window is unfocused (no dimming).
+   Mirrors ~/.config/hypr/titlebars.lua - change both together. */
+button.titlebutton:not(.appmenu),
+headerbar button.titlebutton:not(.appmenu), .titlebar button.titlebutton:not(.appmenu) {
+  min-width: 16px; min-height: 16px; padding: 0; margin: 0 1px; border-radius: 9999px; border: none; /* + headerbar's 6px spacing = 8 */
+  background-image: none; box-shadow: none; text-shadow: none; outline: none;
+  background-color: #241112; color: #e8dede; opacity: 1; }
+button.titlebutton:not(.appmenu) image { -gtk-icon-transform: scale(0.75); color: inherit; }
+headerbar button.titlebutton:not(.appmenu):backdrop, .titlebar button.titlebutton:not(.appmenu):backdrop { background-color: #241112; color: #e8dede; }
+headerbar button.titlebutton:not(.appmenu):hover, .titlebar button.titlebutton:not(.appmenu):hover { background-color: #3a1a1c; }
+headerbar button.titlebutton:not(.appmenu):active, .titlebar button.titlebutton:not(.appmenu):active { background-color: #4a2224; }
+button.titlebutton.close, button.titlebutton.close:backdrop,
+headerbar button.titlebutton.close, headerbar button.titlebutton.close:backdrop,
+.titlebar button.titlebutton.close, .titlebar button.titlebutton.close:backdrop { background-color: #5f0d11; color: #ffffff; }
+headerbar button.titlebutton.close:last-child, .titlebar button.titlebutton.close:last-child { margin-right: 4px; } /* edge gap 10 like hyprbars */
+headerbar button.titlebutton.close:hover, .titlebar button.titlebutton.close:hover { background-color: #7a1218; }
+headerbar button.titlebutton.close:active, .titlebar button.titlebutton.close:active { background-color: #8e1820; }
+
+/* kb 2026-10-03: no CSD shadow/margin, so windows fill their Hyprland slot exactly (0 gap, buttons not clipped) */
+decoration, .csd decoration, .solid-csd decoration { box-shadow: none; margin: 0; border-radius: 0; }
+window.csd, window.solid-csd { box-shadow: none; margin: 0; }

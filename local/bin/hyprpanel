@@ -1,0 +1,80 @@
+#!/bin/sh
+# kb wrapper for HyprPanel: tray icons open their menu on LEFT click (right click = activate);
+# the media menu shows one line "Artist - Song Title" that scrolls when it is too long (author/album rows hidden in config.json),
+# and its time row reads "01:02:30 / 02:10:50 (-01:08:20)" (menus.media.displayTime on).
+# Unpacks the packaged bundle, patches the systray click handler, and runs it exactly like
+# /usr/share/hyprpanel/hyprpanel-app does. If the pattern isn't found, it runs unpatched.
+[ "$#" -gt 0 ] && exec astal -i hyprpanel "$*"
+f="${XDG_RUNTIME_DIR:-/tmp}/dmFyIF-ags.js"
+sed -n '/^\/bin\/cat <<EOF/,/^EOF/p' /usr/share/hyprpanel/hyprpanel-app | sed '1d;$d' | base64 --decode > "$f"
+python3 - "$f" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+old = """        if (isPrimaryClick(event)) {
+          item.activate(0, 0);
+        }
+        if (isSecondaryClick(event)) {
+          menu?.popup_at_widget(self, Gdk.Gravity.NORTH, Gdk.Gravity.SOUTH, null);
+        }"""
+new = """        if (isPrimaryClick(event)) {
+          if (menu) { menu.popup_at_widget(self, Gdk.Gravity.NORTH, Gdk.Gravity.SOUTH, null); } else { item.activate(0, 0); }
+        }
+        if (isSecondaryClick(event)) {
+          item.activate(0, 0);
+        }"""
+if old in s:
+    s = s.replace(old, new, 1)
+else:
+    sys.stderr.write("kb hyprpanel wrapper: systray pattern not found, running unpatched\n")
+# media menu: show the whole song title; if it doesn't fit, scroll it back and forth (marquee)
+old = """      className: "media-indicator-current-song-name-label",
+      label: bind(mediaTitle),
+      maxWidthChars: 31,
+      truncate: true,
+      wrap: true
+    }
+  ) });"""
+new = """      className: "media-indicator-current-song-name-label",
+      label: bind(mediaTitle),
+      maxWidthChars: 31,
+      truncate: true,
+      wrap: true
+    }
+  ), setup: (self) => {
+    self.get_children().forEach((c) => { self.remove(c); c.destroy(); });
+    self.set_halign(Gtk4.Align.FILL); self.set_hexpand(true);
+    const text = () => { const a = (mediaArtist.get() ?? "").trim(), t = (mediaTitle.get() ?? "").trim(); return a && a !== "-----" ? `${a} - ${t}` : t; };
+    const lbl = new Gtk4.Label({ label: text(), xalign: 0.5 });
+    lbl.get_style_context().add_class("media-indicator-current-song-name-label");
+    const sw = new Gtk4.ScrolledWindow({ hexpand: true, propagateNaturalWidth: true, maxContentWidth: 400, hscrollbarPolicy: Gtk4.PolicyType.EXTERNAL, vscrollbarPolicy: Gtk4.PolicyType.NEVER });
+    sw.add(lbl); sw.get_child().set_shadow_type(Gtk4.ShadowType.NONE);
+    self.add(sw); sw.show_all();
+    let pos = 0, dir = 1, hold = 50;
+    const reset = () => { pos = 0; dir = 1; hold = 50; sw.get_hadjustment().set_value(0); };
+    const tick = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 30, () => {
+      if (!sw.get_mapped()) return true;
+      const adj = sw.get_hadjustment(), max = adj.get_upper() - adj.get_page_size();
+      if (max <= 1) { if (pos) reset(); return true; }
+      if (hold > 0) { hold--; return true; }
+      pos += dir;
+      if (pos >= max) { pos = max; dir = -1; hold = 50; } else if (pos <= 0) { pos = 0; dir = 1; hold = 50; }
+      adj.set_value(pos); return true;
+    });
+    const upd = () => { lbl.set_label(text()); reset(); };
+    const unsubs = [mediaTitle.subscribe(upd), mediaArtist.subscribe(upd)];
+    self.connect("destroy", () => { GLib.source_remove(tick); unsubs.forEach((u) => u()); });
+  } });"""
+if old in s:
+    s = s.replace(old, new, 1)
+else:
+    sys.stderr.write("kb hyprpanel wrapper: media title pattern not found, title stays truncated\n")
+# media menu: time row shows "current / total (-left)"
+old = """    return `${getFormattedTime(position2)} / ${getFormattedTime(totalLength)}`;"""
+new = """    return `${getFormattedTime(position2)} / ${getFormattedTime(totalLength)} (-${getFormattedTime(Math.max(0, totalLength - position2))})`;"""
+if old in s:
+    s = s.replace(old, new, 1)
+else:
+    sys.stderr.write("kb hyprpanel wrapper: timestamp pattern not found, no remaining time\n")
+open(p, "w").write(s)
+PY
+LD_PRELOAD="" exec /usr/bin/gjs -m "$f"

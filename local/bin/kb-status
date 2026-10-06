@@ -1,0 +1,16 @@
+#!/bin/sh
+# GNOME-style status icons for the HyprPanel bar (custom/status): wifi bluetooth volume battery%
+w=""; if [ "$(nmcli -t -f WIFI radio)" = enabled ]; then
+  s=$(nmcli -t -f IN-USE,SIGNAL dev wifi list --rescan no 2>/dev/null | awk -F: '$1=="*"{print $2; exit}')
+  if [ -z "$s" ]; then w="󰤯"; elif [ "$s" -ge 75 ]; then w="󰤨"; elif [ "$s" -ge 50 ]; then w="󰤥"; elif [ "$s" -ge 25 ]; then w="󰤢"; else w="󰤟"; fi
+else w="󰤮"; fi
+b=""; bluetoothctl show 2>/dev/null | grep -q 'Powered: yes' && { bluetoothctl devices Connected 2>/dev/null | grep -q . && b="󰂱" || b="󰂯"; }
+v=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
+case "$v" in *MUTED*) vi="󰖁" ;; *) p=$(echo "$v" | awk '{printf "%d", $2*100}'); if [ "$p" -ge 66 ]; then vi="󰕾"; elif [ "$p" -ge 33 ]; then vi="󰖀"; else vi="󰕿"; fi ;; esac
+B=/sys/class/power_supply/BAT1; c=$(cat $B/capacity 2>/dev/null); st=$(cat $B/status 2>/dev/null)
+if [ -n "$c" ]; then
+  i=$(( c / 10 )); [ $i -gt 9 ] && i=10
+  if [ "$st" = Charging ]; then set -- 󰢟 󰢜 󰂆 󰂇 󰂈 󰢝 󰂉 󰢞 󰂊 󰂋 󰂅; else set -- 󰂎 󰁺 󰁻 󰁼 󰁽 󰁾 󰁿 󰂀 󰂁 󰂂 󰁹; fi
+  shift $i; bi="$1  $c%"
+fi
+printf '{"text": "%s"}\n' "$(echo "$w  ${b:+$b  }$vi  $bi" | sed 's/  */  /g')"

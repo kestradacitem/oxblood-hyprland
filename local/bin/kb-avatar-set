@@ -1,0 +1,7 @@
+#!/bin/sh
+# kb-avatar-set <image>: make <image> the system user avatar (AccountsService; GNOME uses it too)
+[ -r "$1" ] || { echo "usage: kb-avatar-set <image>" >&2; exit 1; }
+T="$HOME/.cache/kb-qs/avatar-src.png"; magick "$1" -auto-orient -resize "512x512^" -gravity center -extent 512x512 "PNG32:$T" || exit 1
+U=$(busctl call org.freedesktop.Accounts /org/freedesktop/Accounts org.freedesktop.Accounts FindUserByName s "$USER" | awk '{print $2}' | tr -d '"')
+busctl call org.freedesktop.Accounts "$U" org.freedesktop.Accounts.User SetIconFile s "$T" && cp "$T" "$HOME/.face"
+@HOME@/.local/bin/kb-avatar-sync

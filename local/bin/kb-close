@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# kb-close: close the active window with no "are you sure?" step.
+# Asks the window to close normally. If the app answers with a confirmation prompt (a new window
+# from the same process while the target is still open) and that window was the app's only one,
+# the app is terminated instead. Apps with other windows still open are left alone, because
+# killing the process would close those too.
+if [[ -n $1 ]]; then win=$(hyprctl clients -j | jq --arg a "$1" '.[] | select(.address == $a)'); else win=$(hyprctl activewindow -j); fi || exit 1
+addr=$(jq -r '.address // empty' <<<"$win")
+pid=$(jq -r '.pid // 0' <<<"$win")
+[[ -n $addr && $pid -gt 1 ]] || exit 0
+
+clients() { hyprctl clients -j | jq -r --argjson p "$pid" '.[] | select(.pid == $p) | .address'; }
+before=$(clients)
+
+@HOME@/.local/bin/hl-dsp "hl.dsp.window.close({window=\"address:$addr\"})" closewindow "address:$addr"
+
+for _ in $(seq 1 15); do
+    sleep 0.1
+    now=$(clients)
+    grep -qx "$addr" <<<"$now" || exit 0                      # closed normally
+    if [[ -n $(comm -13 <(sort <<<"$before") <(sort <<<"$now")) ]]; then
+        # a prompt appeared; only force-close if the app had no other windows
+        others=$(grep -vx "$addr" <<<"$before" | grep -c .)
+        [[ $others -eq 0 ]] || exit 0
+        kill -TERM "$pid" 2>/dev/null
+        for _ in $(seq 1 20); do sleep 0.1; kill -0 "$pid" 2>/dev/null || exit 0; done
+        kill -KILL "$pid" 2>/dev/null
+        exit 0
+    fi
+done

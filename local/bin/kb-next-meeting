@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Next Outlook meeting for the HyprPanel bar (custom/nextmeeting).
+
+Reads the published Outlook ICS link from ~/.config/kb-calendar/outlook.ics.url (mode 600),
+caches it for 10 minutes, expands recurring meetings and prints HyprPanel JSON:
+  {"text": "14:00 Standup · in 25m", "tooltip": "<today's agenda>"}
+--join prints the bar's Join button (hidden when that meeting has no link); --open-join opens it.
+Bar text is today only: next/current meeting, "All day · …", "No more meetings today" or "No schedule for today".
+"""
+import datetime as dt, json, os, re, subprocess, sys, time, urllib.request
+import icalendar, recurring_ical_events
+
+CFG = os.path.expanduser("~/.config/kb-calendar/outlook.ics.url")
+CACHE = os.path.expanduser("~/.cache/kb-calendar/outlook.ics")
+TTL = 600
+AHEAD = dt.timedelta(days=7)
+
+def out(text="", tooltip=""):
+    # HyprPanel hideOnEmpty only hides on EMPTY output, so the Join module prints nothing to hide
+    if text or not ("--join" in sys.argv or "--open-join" in sys.argv):
+        print(json.dumps({"text": text, "tooltip": tooltip}))
+    sys.exit(0)
+
+def load():
+    src = os.environ.get("KB_ICS_FILE")
+    if src: return open(src, "rb").read()
+    # KB_FORCE=1 (agenda popup) always re-downloads; falls back to the cache if offline
+    fresh = (not os.environ.get("KB_FORCE")) and os.path.exists(CACHE) and time.time() - os.path.getmtime(CACHE) < TTL
+    if not fresh and os.path.exists(CFG):
+        url = open(CFG).read().strip().replace("webcal://", "https://")
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "kb-next-meeting"})
+            data = urllib.request.urlopen(req, timeout=15).read()
+            if b"BEGIN:VCALENDAR" in data:
+                tmp = CACHE + ".tmp"; open(tmp, "wb").write(data); os.replace(tmp, CACHE)
+        except Exception:
+            pass  # offline: keep using the cached copy
+    return open(CACHE, "rb").read() if os.path.exists(CACHE) else None
+
+def _now():
+    # KB_NOW="2026-10-05 08:30" fakes the clock for testing
+    t = os.environ.get("KB_NOW")
+    return (dt.datetime.strptime(t, "%Y-%m-%d %H:%M") if t else dt.datetime.now()).astimezone()
+
+def local(t):
+    if isinstance(t, dt.datetime):
+        return t.astimezone() if t.tzinfo else t.replace(tzinfo=dt.datetime.now().astimezone().tzinfo)
+    return dt.datetime.combine(t, dt.time.min).astimezone()
+
+# online-meeting join links, best match first (Teams "Join:" link before the meetup-join reference)
+JOIN = [("Microsoft Teams", r"https://teams\.microsoft\.com/(?:meet/|l/meetup-join/)[^\s<>\"']+"),
+        ("Microsoft Teams", r"https://teams\.live\.com/meet/[^\s<>\"']+"),
+        ("Zoom", r"https://[\w.-]*zoom\.us/(?:j|my|w)/[^\s<>\"']+"),
+        ("Google Meet", r"https://meet\.google\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}[^\s<>\"']*")]
+
+def join_link(e):
+    """(platform, url) for Teams / Zoom / Meet, searched in the Teams URL field, location, then description."""
+    text = " ".join(str(e.get(k, "")) for k in ("X-MICROSOFT-SKYPETEAMSMEETINGURL", "LOCATION", "URL", "DESCRIPTION"))
+    for name, pat in JOIN:
+        m = re.search(pat, text)
+        if m: return name, m.group(0).rstrip(".,;)]>")
+    return None, None
+
+def build_agenda(days=8):
+    """Structured agenda for the popup: [{"day": "Mon 5 Oct", "events": [{...}]}]."""
+    raw = load()
+    if not raw: return []
+    cal = icalendar.Calendar.from_ical(raw)
+    now = _now()
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    res = {}
+    for e in recurring_ical_events.of(cal).between(start, start + dt.timedelta(days=days)):
+        if str(e.get("STATUS", "")).upper() == "CANCELLED": continue
+        title = str(e.get("SUMMARY", "(no title)")).strip()
+        if title.lower().startswith("canceled:"): continue
+        s, en = e.get("DTSTART").dt, (e.get("DTEND") or e.get("DTSTART")).dt
+        allday = not isinstance(s, dt.datetime)
+        s, en = local(s), local(en)
+        if not allday and en <= now: continue
+        d = s.date() if not allday else max(s.date(), now.date())
+        key = "Today" if d == now.date() else "Tomorrow" if d == now.date() + dt.timedelta(days=1) else f"{d:%A, %-d %b}"
+        platform, url = join_link(e)
+        res.setdefault((d, key), []).append({
+            "platform": platform, "join": url,
+            "when": "All day" if allday else f"{s:%H:%M} – {en:%H:%M}",
+            "title": title, "location": str(e.get("LOCATION", "")).strip(),
+            "now": (not allday) and s <= now < en, "sort": s.isoformat()})
+    return [{"day": k[1], "events": sorted(v, key=lambda x: (x["when"] != "All day", x["sort"]))}
+            for k, v in sorted(res.items())]
+
+def main():
+    if "--agenda" in sys.argv:
+        print(json.dumps(build_agenda())); sys.exit(0)
+    raw = load()
+    if not raw: out()
+    cal = icalendar.Calendar.from_ical(raw)
+    now = _now()
+    day_end = now.replace(hour=23, minute=59, second=59)
+    evs = []
+    for e in recurring_ical_events.of(cal).between(now - dt.timedelta(hours=12), max(day_end, now + AHEAD)):
+        if str(e.get("STATUS", "")).upper() == "CANCELLED": continue
+        if str(e.get("SUMMARY", "")).lower().startswith("canceled:"): continue
+        s, en = e.get("DTSTART").dt, (e.get("DTEND") or e.get("DTSTART")).dt
+        allday = not isinstance(s, dt.datetime)
+        evs.append((local(s), local(en), allday, str(e.get("SUMMARY", "(no title)")).strip(),
+                    str(e.get("LOCATION", "")).strip(), *join_link(e)))
+    evs.sort()
+    def fmt_day(d):
+        if d == now.date(): return "Today"
+        if d == now.date() + dt.timedelta(days=1): return "Tomorrow"
+        return f"{d:%a %-d %b}"
+    agenda, shown = [], 0
+    for day in sorted({x[0].date() for x in evs if x[1] > now or x[2]}):
+        items = [x for x in evs if x[0].date() == day and (x[1] > now or x[2])]
+        if not items: continue
+        agenda.append(fmt_day(day))
+        for s_, en, allday, title, loc, *_ in items:
+            when = "All day" if allday else f"{s_:%H:%M}–{en:%H:%M}"
+            agenda.append(f"  {when}  {title}" + (f"  ({loc})" if loc else ""))
+        shown += 1
+        if shown >= 3: break
+    tooltip = "\n".join(agenda) if agenda else "No meetings in the next 7 days"
+    # bar text covers TODAY only (the agenda popup still shows the week)
+    today = [x for x in evs if x[0].date() == now.date() or (x[2] and x[0].date() <= now.date() < x[1].date())]
+    short = lambda t: t if len(t) <= 32 else t[:31] + "…"
+    # --join / --open-join: Join button for the meeting the bar text shows (current, else next today)
+    if "--join" in sys.argv or "--open-join" in sys.argv:
+        tgt = next((x for x in today if not x[2] and x[1] > now), None)
+        if not tgt or not tgt[6]: out()
+        # only from 15 min before start until it ends
+        if tgt[0] - now > dt.timedelta(minutes=15): out()
+        # hide for on-site meetings: a physical address in LOCATION, or "[Physical Meeting]" in the title
+        # (every ";"-part must be online or a placeholder like TBA; map links count as on-site)
+        def online(part):
+            if not part or part in ("tba", "tbd", "n/a", "-"): return True
+            if any(w in part for w in ("maps.", "goo.gl/maps", "/maps")): return False
+            return part.startswith("http") or any(w in part for w in
+                ("teams", "zoom", "google meet", "meet.google", "online", "virtual", "webex"))
+        if not all(online(x.strip()) for x in tgt[4].lower().split(";")) or "physical" in tgt[3].lower(): out()
+        if "--open-join" in sys.argv:
+            subprocess.Popen(["setsid", "-f", "xdg-open", tgt[6]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            sys.exit(0)
+        out("Join " + {"Microsoft Teams": "Teams", "Google Meet": "Meet"}.get(tgt[5], tgt[5]), tgt[6])
+    for s_, en, allday, title, loc, *_ in today:
+        if allday: continue
+        if s_ <= now < en: out(f"{s_:%H:%M} {short(title)} · now", tooltip)
+        if s_ > now:
+            mins = int((s_ - now).total_seconds() // 60)
+            rel = f"in {mins}m" if mins < 60 else f"in {mins//60}h {mins%60:02d}m"
+            out(f"{s_:%H:%M} {short(title)} · {rel}", tooltip)
+    allday = [x for x in today if x[2]]
+    if allday: out(f"All day · {short(allday[0][3])}", tooltip)
+    if today: out("No more meetings today", tooltip)
+    out("No schedule for today", tooltip)
+
+if __name__ == "__main__":
+    try: main()
+    except Exception as ex: out("", f"Calendar error: {ex}")

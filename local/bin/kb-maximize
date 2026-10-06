@@ -1,0 +1,33 @@
+#!/bin/sh
+# kb-maximize [ADDRESS] - GNOME-style maximize toggle for floating windows.
+# Hyprland's own "maximized" state is a fullscreen mode: that window is drawn above every floating
+# window, so clicking/focusing another window can't raise it (2026-10-03). Instead this just resizes
+# the floating window to fill the work area (under the panel, room for its hyprbars bar) and restores
+# the previous geometry on the next toggle. Used by the titlebar button, bar double-click and Super+F.
+d=@HOME@/.local/bin/hl-dsp
+if [ -n "$1" ]; then w=$(hyprctl clients -j | jq --arg a "$1" '.[] | select(.address == $a)')
+else w=$(hyprctl activewindow -j); fi
+a=$(echo "$w" | jq -r '.address // empty'); [ -n "$a" ] || exit 0
+state="${XDG_RUNTIME_DIR:-/tmp}/kb-maximize"; mkdir -p "$state"; f="$state/$a"
+# leave a real (fullscreen-layer) maximized state first
+[ "$(echo "$w" | jq -r '.fullscreen')" = 1 ] && $d "hl.dsp.window.fullscreen({mode=\"maximized\",window=\"address:$a\"})" "fullscreen 1"
+eval "$(hyprctl monitors -j | jq -r --argjson m "$(echo "$w" | jq '.monitor')" '.[] | select(.id == $m) |
+  "X=\(.x); Y=\(.y); W=\((.width/.scale)|floor); H=\((.height/.scale)|floor); RL=\(.reserved[0]); RT=\(.reserved[1]); RR=\(.reserved[2]); RB=\(.reserved[3])"')"
+# same bar test as scripts/snap.sh (keep in sync with titlebars.lua no-bar rules)
+B=$(echo "$w" | jq -r 'if ((.tags // []) | index("kbcsd")) or (.class | test("^(org\\.gnome\\..*|(?i:.*codium.*)|(?i:onlyoffice.*)|(?i:firefox)|(?i:discord))$")) or (.class == "org.remmina.Remmina" and .title == "Remmina Remote Desktop Client") then 0 else 26 end')
+MX=$((X + RL)); MY=$((Y + RT + B)); MW=$((W - RL - RR)); MH=$((H - RT - RB - B))
+set -- $(echo "$w" | jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"')
+mv() { $d "hl.dsp.window.resize({x=$3,y=$4,window=\"address:$a\"})" "resizewindowpixel exact $3 $4,address:$a"
+       $d "hl.dsp.window.move({x=$1,y=$2,window=\"address:$a\"})" "movewindowpixel exact $1 $2,address:$a"; }
+# "already maximized" allows 2 px slack: XWayland apps at 1.5x scale can land 1 px off (OnlyOffice: 1201 vs 1200)
+near() { nd=$(($1 - $2)); [ ${nd#-} -le 2 ]; }
+ismax() { near "$1" $MX && near "$2" $MY && near "$3" $MW && near "$4" $MH; }
+if [ -f "$f" ] && ismax "$1" "$2" "$3" "$4"; then
+  mv $(cat "$f"); rm -f "$f"
+elif ismax "$1" "$2" "$3" "$4"; then
+  # maximized with no saved size (opened that way / after a reboot): restore to the uniform 1092x564, centred
+  mv $((MX + (MW - 1092) / 2)) $((MY + (MH - 564) / 2)) 1092 564
+else
+  ismax "$1" "$2" "$3" "$4" || echo "$1 $2 $3 $4 $MW $MH" > "$f"   # + maximized size: kb-minimize un-maximizes on title-bar drag
+  mv $MX $MY $MW $MH
+fi

@@ -1,0 +1,60 @@
+/* kb theme: OLED black + vampiric red (wallpaper border #5f0d11). Backup: ~/.config/kb-theme-backup-2026-10-02 */
+:root {
+  --accent-bg-color: #5f0d11;
+  --accent-fg-color: #ffffff;
+  --accent-color: #e04450;            /* readable standalone accent (text, links, icons) */
+  --destructive-bg-color: #9e1b24;
+  --destructive-color: #e8303c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --window-bg-color: #000000;
+    --window-fg-color: #e8dede;
+    --view-bg-color: #000000;
+    --view-fg-color: #e8dede;
+    --headerbar-bg-color: #000000;
+    --headerbar-fg-color: #e8dede;
+    --headerbar-backdrop-color: #000000;
+    --headerbar-shade-color: rgba(95, 13, 17, 0.35);
+    --headerbar-darker-shade-color: rgba(95, 13, 17, 0.55);
+    --sidebar-bg-color: #0a0606;
+    --sidebar-fg-color: #e8dede;
+    --sidebar-backdrop-color: #0a0606;
+    --sidebar-shade-color: rgba(95, 13, 17, 0.30);
+    --secondary-sidebar-bg-color: #0c0707;
+    --secondary-sidebar-backdrop-color: #0c0707;
+    --card-bg-color: #120a0a;
+    --card-fg-color: #e8dede;
+    --dialog-bg-color: #0c0707;
+    --dialog-fg-color: #e8dede;
+    --popover-bg-color: #0c0707;
+    --popover-fg-color: #e8dede;
+    --thumbnail-bg-color: #120a0a;
+    --overview-bg-color: #000000;
+    --shade-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ===== UNIVERSAL WINDOW-CONTROL RULE (kb 2026-10-03) =====
+   Every window, whoever draws it (hyprbars / GTK3 / GTK4+libadwaita), uses the same buttons:
+   order minimize, maximize, close on the right; 16 px circle, 10 px icon, 8 px between circles,
+   10 px from the right edge, centred vertically; min/max #241112 on #e8dede, close #5f0d11 on #fff;
+   hover #3a1a1c / #7a1218; identical when the window is unfocused (no dimming).
+   Mirrors ~/.config/hypr/titlebars.lua - change both together. */
+windowcontrols { border-spacing: 0; }
+windowcontrols > button,
+headerbar.default-decoration windowcontrols > button { min-width: 16px; min-height: 16px; padding: 0; margin: 0 4px; }
+windowcontrols > button > image,
+headerbar.default-decoration windowcontrols > button > image { min-width: 16px; min-height: 16px; padding: 0; -gtk-icon-size: 10px; border-radius: 9999px; box-shadow: none;
+  background-color: #241112; color: #e8dede; opacity: 1; filter: none; }
+windowcontrols > button:hover > image { background-color: #3a1a1c; }
+windowcontrols > button:active > image { background-color: #4a2224; }
+windowcontrols > button.close > image { background-color: #5f0d11; color: #ffffff; }
+windowcontrols > button.close:hover > image { background-color: #7a1218; }
+windowcontrols > button.close:active > image { background-color: #8e1820; }
+windowcontrols > button:disabled > image { opacity: 1; }
+/* GTK dims the whole header bar to 50% when the window loses focus; hyprbars does not -> keep them equal */
+headerbar:backdrop > windowhandle { filter: none; }
+
+/* kb 2026-10-03: no CSD shadow/margin, so windows fill their Hyprland slot exactly (0 gap, buttons not clipped) */
+window.csd, window.csd.maximized, window.csd.tiled, window.solid-csd { box-shadow: none; margin: 0; border-radius: 0; outline: none; }

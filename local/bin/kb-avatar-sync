@@ -1,0 +1,11 @@
+#!/bin/sh
+# Copy the system user avatar (AccountsService, same as GNOME Settings → Users) into round PNGs
+# used by the kb dashboard and the HyprPanel "kb" button. Falls back to ~/.face or a generated one.
+D="$HOME/.cache/kb-qs"; mkdir -p "$D"
+U=$(busctl call org.freedesktop.Accounts /org/freedesktop/Accounts org.freedesktop.Accounts FindUserByName s "$USER" 2>/dev/null | awk '{print $2}' | tr -d '"')
+SRC=$(busctl get-property org.freedesktop.Accounts "$U" org.freedesktop.Accounts.User IconFile 2>/dev/null | sed 's/^s "//; s/"$//')
+[ -r "$SRC" ] || SRC="$HOME/.face"; [ -r "$SRC" ] || SRC="$HOME/.face.icon"
+round() { magick "$SRC" -resize "${1}x${1}^" -gravity center -extent "${1}x${1}" \
+  \( +clone -alpha extract -fill black -colorize 100 -fill white -draw "circle $(( $1/2 )),$(( $1/2 )) $(( $1/2 )),1" \) \
+  -alpha off -compose CopyOpacity -composite "PNG32:$2"; }
+if [ -r "$SRC" ]; then round 256 "$D/avatar.png.tmp" && mv "$D/avatar.png.tmp" "$D/avatar.png"; round 64 "$D/avatar-bar.png.tmp" && mv "$D/avatar-bar.png.tmp" "$D/avatar-bar.png"; fi

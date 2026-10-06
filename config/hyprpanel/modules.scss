@@ -1,0 +1,79 @@
+// kb: OLED + maroon styling for custom modules
+.cmodule-nextmeeting {
+  background: #120a0a;
+  .bar-button-icon { color: #c41e2a; }
+  .bar-button-label { color: #e8dede; }
+}
+.cmodule-joinmeeting {
+  background: #5f0d11;
+  .bar-button-icon, .bar-button-label { color: #ffffff; }
+  &:hover { background: #7a1218; }
+}
+.cmodule-logo { background: #120a0a; .bar-button-icon { color: #c41e2a; } .bar-button-label { margin: 0; } }
+.cmodule-status { background: #120a0a; .bar-button-label { color: #c41e2a; } }
+.cmodule-user { background: #120a0a;
+  .bar-button-icon { background-image: url("file://@HOME@/.cache/kb-qs/avatar-bar.png"); background-size: cover; background-position: center;
+                     min-width: 1.15em; min-height: 1.15em; border-radius: 99px; color: transparent; }
+  .bar-button-label { color: #e8dede; } }
+
+// kb: media menu buttons behave like the kbshell dashboard buttons (solid hover, white icons)
+.menu-items-container.media .media-indicator-control-button {
+  color: #ffffff;
+  &.enabled:hover { background: #9e1b24; }
+  &.enabled.active { background: #c41e2a; &:hover { background: #e04450; } }
+  &.disabled { color: rgba(255, 255, 255, 0.55); }
+  label, image { color: inherit; }
+}
+// kb: single "Artist - Title" line, buttons right below it
+.menu-items-container.media .media-indicator-current-song-name { margin-bottom: 0; }
+.menu-items-container.media .media-indicator-current-controls { margin-top: 0.9rem; }
+
+/* system tray app menus: white text on a solid dark-red highlight (the default highlight is the
+   text colour at 40%, which would be pale grey behind white text) */
+window.popup menuitem:hover,
+window.popup menuitem:active {
+    background-color: #5f0d11;
+}
+window.popup menuitem label,
+window.popup menuitem arrow {
+    color: #ffffff;
+}
+window.popup menuitem:disabled label {
+    color: #8c7a7a;
+}
+
+/* every top-bar menu looks like the kb logo menu: square corners, Adwaita Sans, regular weight,
+   light text (2026-10-02). Window IDs so these win over HyprPanel's class-chain rules.
+   window.popup = the system-tray app menus. */
+window#audiomenu, window#bluetoothmenu, window#calendarmenu, window#dashboardmenu, window#energymenu,
+window#mediamenu, window#networkmenu, window#notificationsmenu, window#powerdropdownmenu,
+window#powermenu, window#verification, window.popup {
+    &, * {
+        border-radius: 0;
+        font-family: "Adwaita Sans", sans-serif;
+        font-weight: normal;
+    }
+}
+window.popup menu { background: #000000; border: 1px solid #5f0d11; padding: 6px; }
+window.popup menuitem { padding: 7px 12px; min-height: 0; }
+window.popup menuitem label { font-size: 14px; }
+window#audiomenu, window#bluetoothmenu, window#calendarmenu, window#dashboardmenu, window#energymenu,
+window#mediamenu, window#networkmenu, window#notificationsmenu, window#powerdropdownmenu {
+    .menu-label { color: #e8dede; }
+}
+
+/* top bar: every item the same - Adwaita Sans regular, one size, red icons + light text,
+   one icon size, one icon-to-text gap, square corners (2026-10-02). IDs beat HyprPanel's per-module rules. */
+window#bar-0, window#bar-1 {
+    .bar-button-label { font-family: "Adwaita Sans", sans-serif; font-weight: normal; font-size: 1rem; color: #e8dede; margin-left: 0.45em; }
+    .bar-button-icon { font-size: 1.1rem; color: #c41e2a; margin: 0; }
+    .cmodule-logo .bar-button-label { margin: 0; }
+    * { border-radius: 0; }
+    .cmodule-user .bar-button-icon { min-width: 1.1rem; min-height: 1.1rem; border-radius: 99px; }
+}
+
+/* 2026-10-05: tray icons scaled down. The real size lives in config.json (bar.systray.customIcons.*.size
+   = 1.0em; HyprPanel sets it inline, default 1.3em). At 1.3em the tray made the bar grow 30 -> 34 px
+   whenever a tray app started (and shrink when it quit), shifting every window. This rule covers
+   icons without a custom glyph. */
+.systray-icon { font-size: 1.0em; }

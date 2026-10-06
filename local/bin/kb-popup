@@ -1,0 +1,13 @@
+#!/bin/sh
+# Toggle one of kb's GNOME-style popups: kb-popup logo|quick|agenda
+n="$1"; P="$XDG_RUNTIME_DIR/kbpop-$n.pid"
+if [ -f "$P" ] && kill -0 "$(cat "$P")" 2>/dev/null; then kill "$(cat "$P")"; rm -f "$P"; exit 0; fi
+case "$n" in
+  logo)  f=logo_menu.py ;;
+  quick) f=quick_settings.py ;;
+  agenda) f=agenda.py ;;
+  appgrid) f=appgrid.py ;;
+  dashboard) f=dashboard.py ;;
+  *) exit 1 ;;
+esac
+LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so exec python3 "@HOME@/.local/lib/kbshell/$f"

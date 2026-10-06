@@ -1,0 +1,9 @@
+#!/bin/sh
+# After a Hyprland update, its plugins (title bars, minimize fix) must be rebuilt. Warn at login if any failed to load.
+sleep 6
+L=$(hyprctl plugin list 2>/dev/null)
+miss=""
+echo "$L" | grep -q 'Plugin hyprbars' || miss="$miss title-bars(hyprbars)"
+echo "$L" | grep -q 'Plugin kb-minimize' || miss="$miss minimize(kb-minimize)"
+[ -n "$miss" ] && notify-send -u critical "Hyprland plugins need a rebuild" "Not loaded:$miss — Hyprland was probably updated. Rerun ./install.sh in the oxblood-hyprland folder to rebuild them."
+exit 0

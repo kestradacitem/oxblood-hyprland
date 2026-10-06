@@ -1,0 +1,50 @@
+{
+  "custom/nextmeeting": {
+    "icon": "󰃭",
+    "label": "{text}",
+    "truncationSize": 48,
+    "execute": "@HOME@/.local/bin/kb-next-meeting",
+    "interval": 60000,
+    "hideOnEmpty": true,
+    "actions": {
+      "onLeftClick": "setsid -f @HOME@/.local/bin/kb-agenda-popup"
+    }
+  },
+  "custom/logo": {
+    "icon": "",
+    "label": "",
+    "tooltip": "Activities",
+    "actions": {
+      "onLeftClick": "setsid -f @HOME@/.local/bin/kb-popup logo"
+    }
+  },
+  "custom/status": {
+    "icon": "",
+    "label": "{text}",
+    "execute": "@HOME@/.local/bin/kb-status",
+    "interval": 3000,
+    "actions": {
+      "onLeftClick": "setsid -f @HOME@/.local/bin/kb-popup dashboard",
+      "onScrollUp": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+",
+      "onScrollDown": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+    }
+  },
+  "custom/user": {
+    "icon": " ",
+    "label": "kb",
+    "tooltip": "Dashboard",
+    "actions": {
+      "onLeftClick": "setsid -f @HOME@/.local/bin/kb-popup dashboard"
+    }
+  },
+  "custom/joinmeeting": {
+    "icon": "󰕧",
+    "label": "{text}",
+    "execute": "@HOME@/.local/bin/kb-next-meeting --join",
+    "interval": 60000,
+    "hideOnEmpty": true,
+    "actions": {
+      "onLeftClick": "@HOME@/.local/bin/kb-next-meeting --open-join"
+    }
+  }
+}
