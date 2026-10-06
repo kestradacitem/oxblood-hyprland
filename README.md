@@ -1,15 +1,19 @@
 # Oxblood
 
-**A dark-red Hyprland + HyprPanel setup that feels like GNOME but runs like Hyprland.**
-Pure OLED black, oxblood and crimson accents, square corners, no animations, no blur. Just a quiet desktop that stays out of your way.
+**A dark-red, non-tiling Hyprland + HyprPanel setup that feels like GNOME but runs like Hyprland.**
+Windows float like on a normal desktop; nothing tiles unless you snap it. Pure OLED black, oxblood and crimson accents, square corners, no animations, no blur. Just a quiet desktop that stays out of your way.
 
 ![Desktop](screenshots/desktop.png)
+
+![Top bar with the Join button, 10 minutes before a meeting](screenshots/topbar-join-center.png)
 
 | Calendar & schedule | Dashboard | Media menu with time left |
 |---|---|---|
 | ![Calendar agenda](screenshots/agenda-panel.png) | ![Dashboard](screenshots/dashboard-panel.png) | ![Media menu](screenshots/media-menu.png) |
 
-![App grid](screenshots/app-grid.png)
+| Login screen | App grid |
+|---|---|
+| ![Login screen](screenshots/login.png) | ![App grid](screenshots/app-grid.png) |
 
 > The calendar events and notifications in the screenshots are demo data. The Wi-Fi name and avatar in the top bar are blurred in the screenshots only, not in the theme.
 
@@ -42,6 +46,21 @@ The typhoon passed and I kept the desktop. I hope it works for you too.
 
 ---
 
+## Floating, not tiling
+
+Hyprland is famous as a tiling compositor. **Oxblood turns tiling off.** It behaves like GNOME, macOS or Windows:
+
+- **New windows open floating**, centered, at one comfortable size (1092×564). They don't push other windows around.
+- **Title bars with one set of buttons** (minimize, maximize, close). Apps that draw their own buttons, like GNOME apps, Firefox or VS Code, get no extra bar, so you never see two sets.
+- **Maximize fills the screen** but stays a normal window: the bar stays visible and other windows can still go on top. Double-click a title bar to maximize, or press `Super + F`. Real fullscreen is still `Super + Shift + F`.
+- **Drag a maximized window** and it restores to its old size under your cursor, like GNOME.
+- **Snap on demand**: drag a window to the left or right edge (a preview shows where it will land) or use `Super + ←/→`. Drag to the top or press `Super + ↑` to maximize.
+- **Click to focus**, and the clicked window comes to the front. Hovering doesn't steal focus.
+- **Resize from any edge**, even without a visible border.
+- **Minimize** with the title-bar button or `Super + H`. Minimized windows go to a hidden workspace (`Super + Shift + H` shows them).
+
+The small `kb-minimize` plugin, the `edge-snap.py` script and `kb-maximize` do this work. Want tiling back? Remove the `float-all` window rule in `hyprland.lua`; the layout underneath is already `dwindle`.
+
 ## What's inside
 
 | Path | What it does |
@@ -56,7 +75,25 @@ The typhoon passed and I kept the desktop. I hope it works for you too.
 | `local/bin/kb-*` | Maximize/restore, close, lock (no fade), popups, avatar, next-meeting helpers |
 | `local/lib/kbshell/` | GTK4 layer-shell popups: dock, app grid, dashboard, quick settings, agenda, snap preview |
 | `plugins/kb-minimize/` | Hyprland plugin: GNOME-like maximize, drag-to-restore, snap, damage fix for flicker |
+| `system/kb-greeter/`, `system/greetd/` | The login screen (greetd + cage) and its config template |
+| `examples/demo-calendar.ics` | Made-up calendar for trying the agenda |
 | `wallpapers/kb-oled-arch.png` | The wallpaper: an oxblood Arch logo on pure black |
+
+## Top bar
+
+![Top bar](screenshots/topbar-join.png)
+
+From left to right:
+
+| Where | What | Click |
+|---|---|---|
+| Left | **Arch logo** | Activities menu |
+| Left | **Now playing**: artist and song (Spotify or any MPRIS player) | Media menu with controls, seek bar and `01:51 / 05:08 (-03:17)` time |
+| Center | **Date and time** | Calendar |
+| Center | **Next meeting today** with a countdown | 8-day agenda |
+| Center | **Join button**, only from **15 minutes before** an online meeting until it ends | Opens Teams / Zoom / Meet directly |
+| Right | Tray icons, volume (scroll to change), Wi-Fi, Bluetooth, battery | Dashboard / quick settings |
+| Right | **Your avatar and name** | Dashboard |
 
 ## Calendar & schedule
 
@@ -65,7 +102,7 @@ Your day sits in the middle of the top bar, right next to the clock.
 **In the bar**
 - The next meeting today, with a countdown: `14:00 Standup · in 25m`. While a meeting is running it shows `· now`.
 - Only today's meetings appear in the bar. When the day's meetings are done it says *No more meetings today*, and on a free day *No schedule for today*.
-- A **Join** button (`Join Teams`, `Join Zoom`, `Join Meet`) appears next to it when the current or next meeting has an online link. One click opens the call. Without a link, there's no button.
+- **The Join button appears 15 minutes before an online meeting** (`Join Teams`, `Join Zoom`, `Join Meet`) and stays until the meeting ends. One click opens the call. It doesn't clutter the bar the rest of the day. Meetings with no link, or held in person (a physical address in the location, or "Physical Meeting" in the title), never get a button.
 - Hover for a tooltip with the next few days at a glance.
 
 **Agenda popup** (click the meeting text)
@@ -102,6 +139,16 @@ Click your name or the status icons at the top right of the bar. Everything you 
 
 To change the shortcuts, edit the `sbtns([...])` list in `local/lib/kbshell/dashboard.py`. Each entry is an icon, a tooltip and a command.
 
+## Login & lock screen
+
+![Login screen](screenshots/login.png)
+
+**Login (kb-greeter)**: a tiny GTK4 greeter on [greetd](https://sr.ht/~kennylevinsen/greetd/), shown full screen by [cage](https://github.com/cage-kiosk/cage). It's just pure black, a large clock and one pill-shaped password field with a crimson outline. No user list, no session menu. It logs in a single user straight into Hyprland. A wrong password turns the outline bright red and shows *Wrong password* for a moment. Pressing Enter with an empty field does nothing, so it never counts as a failed attempt.
+
+**Lock (hyprlock)**: identical on purpose, so logging in and unlocking feel like the same screen. It locks with `Super + L`, before every suspend (for example when you close the lid), and when you're idle: the screen dims at 4½ minutes, then locks and turns off at 5 minutes, like GNOME. On battery the laptop suspends after 20 minutes idle, never on AC. The lock appears instantly with no fade, and the first key you press always goes into the password field.
+
+Install the login screen with `./install.sh --greeter` (see below). It's optional; the lock screen is always included.
+
 ## Requirements
 
 - **Hyprland 0.56+** with the **Lua config** (`hyprland.lua`)
@@ -117,6 +164,9 @@ sudo pacman -S --needed hyprland hyprpaper hypridle hyprlock hyprpolkitagent \
   cmake gcc git pkgconf ttf-jetbrains-mono-nerd adwaita-fonts \
   python-icalendar python-recurring-ical-events wf-recorder bluez-utils
 yay -S ags-hyprpanel-git
+
+# optional, for the login screen
+sudo pacman -S --needed greetd cage
 ```
 
 Optional apps used by the default keybinds: `ptyxis` (terminal), `nautilus` (files), `thorium-browser` (browser). Swap them at the top of `hyprland.lua`.
@@ -141,6 +191,27 @@ Then log out and choose the **Hyprland** session.
 Make sure `~/.local/bin` is in your `PATH` **before** `/usr/bin`, so the patched `hyprpanel` wrapper runs instead of the stock one.
 
 Configs only, no compiling: `./install.sh --no-build`
+
+### Login screen (optional)
+
+```bash
+./install.sh --greeter
+```
+
+This installs `greetd` and `cage` if needed, copies the greeter to `/usr/local/share/kb-greeter/`, and writes `/etc/greetd/config.toml` for your username (backing up the old one). Try it in a window first:
+
+```bash
+KB_GREETER_TEST=1 python3 system/kb-greeter/greeter.py   # type "ok" + Enter to close
+```
+
+Then switch from your current login manager:
+
+```bash
+sudo systemctl disable gdm   # or sddm / lightdm
+sudo systemctl enable greetd
+```
+
+Keep a TTY login handy (`Ctrl + Alt + F2`) the first time, just in case.
 
 ### After a Hyprland update
 

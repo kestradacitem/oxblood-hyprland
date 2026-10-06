@@ -5,10 +5,17 @@
 #
 #   ./install.sh            install everything
 #   ./install.sh --no-build install configs only (skip building plugins)
+#   ./install.sh --greeter  also install the login screen (greetd + cage, needs sudo)
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
-BUILD=1; [ "${1:-}" = "--no-build" ] && BUILD=0
+BUILD=1; GREETER=0
+for a in "$@"; do
+    case "$a" in
+        --no-build) BUILD=0 ;;
+        --greeter)  GREETER=1 ;;
+    esac
+done
 BACKUP="$HOME/.oxblood-backup-$(date +%Y%m%d-%H%M%S)"
 
 say()  { printf '\033[1;31m::\033[0m %s\n' "$*"; }
@@ -74,6 +81,17 @@ if [ $BUILD = 1 ]; then
     cp "$TMP/hp/hyprbars/hyprbars.so" "$PLUG/libhyprbars.so"
 else
     warn "Skipped plugin build: title bars and the GNOME-style maximize/snap won't load until you build them."
+fi
+
+# --- 4. login screen (optional) ---
+if [ $GREETER = 1 ]; then
+    say "Installing the login screen (greetd + cage). sudo will ask for your password."
+    command -v greetd >/dev/null && command -v cage >/dev/null || sudo pacman -S --needed greetd cage
+    sudo install -Dm644 "$REPO/system/kb-greeter/greeter.py" /usr/local/share/kb-greeter/greeter.py
+    [ -f /etc/greetd/config.toml ] && sudo cp /etc/greetd/config.toml "/etc/greetd/config.toml.bak-$(date +%Y%m%d)"
+    sed "s#@USER@#$USER#" "$REPO/system/greetd/config.toml" | sudo tee /etc/greetd/config.toml >/dev/null
+    say "Test it first: KB_GREETER_TEST=1 python3 $REPO/system/kb-greeter/greeter.py  (type ok and press Enter to close it)"
+    say "Then switch login managers: sudo systemctl disable gdm sddm lightdm 2>/dev/null; sudo systemctl enable greetd"
 fi
 
 say "Done. Log out and pick the Hyprland session (or run: hyprctl reload)."

@@ -1,0 +1,8 @@
+# greetd: boot straight into the Oxblood login screen (kb-greeter inside cage).
+# install.sh --greeter replaces @USER@ with your username.
+[terminal]
+vt = 1
+
+[default_session]
+command = "env GTK_A11Y=none KB_GREETER_USER=@USER@ cage -s -d -- python3 /usr/local/share/kb-greeter/greeter.py"
+user = "greeter"
