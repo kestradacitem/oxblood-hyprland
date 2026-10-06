@@ -5,11 +5,13 @@ Pure OLED black, oxblood and crimson accents, square corners, no animations, no 
 
 ![Desktop](screenshots/desktop.png)
 
-| Media menu with time left | Dashboard | App grid |
+| Calendar & schedule | Dashboard | Media menu with time left |
 |---|---|---|
-| ![Media menu](screenshots/media-menu.png) | ![Dashboard](screenshots/dashboard.png) | ![App grid](screenshots/app-grid.png) |
+| ![Calendar agenda](screenshots/agenda-panel.png) | ![Dashboard](screenshots/dashboard-panel.png) | ![Media menu](screenshots/media-menu.png) |
 
-> Private bits (Wi-Fi name, avatar, notifications) are blurred in the screenshots, not in the theme.
+![App grid](screenshots/app-grid.png)
+
+> The calendar events and notifications in the screenshots are demo data. The Wi-Fi name and avatar in the top bar are blurred in the screenshots only, not in the theme.
 
 ---
 
@@ -56,6 +58,50 @@ The typhoon passed and I kept the desktop. I hope it works for you too.
 | `plugins/kb-minimize/` | Hyprland plugin: GNOME-like maximize, drag-to-restore, snap, damage fix for flicker |
 | `wallpapers/kb-oled-arch.png` | The wallpaper: an oxblood Arch logo on pure black |
 
+## Calendar & schedule
+
+Your day sits in the middle of the top bar, right next to the clock.
+
+**In the bar**
+- The next meeting today, with a countdown: `14:00 Standup · in 25m`. While a meeting is running it shows `· now`.
+- Only today's meetings appear in the bar. When the day's meetings are done it says *No more meetings today*, and on a free day *No schedule for today*.
+- A **Join** button (`Join Teams`, `Join Zoom`, `Join Meet`) appears next to it when the current or next meeting has an online link. One click opens the call. Without a link, there's no button.
+- Hover for a tooltip with the next few days at a glance.
+
+**Agenda popup** (click the meeting text)
+- Shows the **next 8 days**, grouped as *Today*, *Tomorrow*, then by weekday.
+- Each event shows its time, title and location. A meeting in progress is highlighted with a crimson bar and tagged `now`. All-day events are listed first.
+- Online meetings get a **Join ↗** button and a platform tag (Microsoft Teams, Zoom or Google Meet). The script finds the link in the Teams meeting field, the location or the description.
+- The cached agenda appears instantly, then refreshes in the background every time you open it. The subtitle shows when it was last updated, or *offline, cached* when there's no network.
+- Recurring meetings are expanded properly, and cancelled ones are hidden.
+
+**Setup** (optional)
+1. Publish your calendar as an **ICS link**. In Outlook on the web: *Settings → Calendar → Shared calendars → Publish a calendar → ICS*. In Google Calendar: *Settings → your calendar → Secret address in iCal format*.
+2. Save the link and keep it private:
+   ```bash
+   mkdir -p ~/.config/kb-calendar
+   echo 'https://…/calendar.ics' > ~/.config/kb-calendar/outlook.ics.url
+   chmod 600 ~/.config/kb-calendar/outlook.ics.url
+   ```
+3. The bar picks it up within a minute. The calendar is cached for 10 minutes in `~/.cache/kb-calendar/`.
+
+To try it without a real calendar, use the demo from the screenshot: `KB_ICS_FILE=examples/demo-calendar.ics kb-next-meeting --agenda` (its dates are in October 2026, so adjust them to this week).
+
+## Dashboard
+
+Click your name or the status icons at the top right of the bar. Everything you need often is in one panel, from top to bottom:
+
+| Row | What's there |
+|---|---|
+| **Profile & power** | Your avatar (click it to change your profile picture) and uptime. Power off, restart, log out, suspend. Each asks *OK?* on the first click, so you can't trigger them by accident. |
+| **Shortcuts** | Browser, chat, Spotify, app search, remote desktop, screenshot (area), Settings and a **screen recorder** that turns red while recording. Recordings go to `~/Videos/Screencasts`. |
+| **Toggles** | Wi-Fi, Bluetooth, Do Not Disturb, speaker mute, mic mute. Bright red = on, dim = off. |
+| **Folders** | Downloads, Documents, Videos, Pictures, Music, Home. One click opens them in your file manager. |
+| **System** | Live CPU, memory and disk bars. |
+| **Notifications** | Your recent notifications with app name, how long ago, title and message. Dismiss one with **✕** or everything with **Clear all**. The list is kept by `kb-notif-log`, so it survives closing the panel. |
+
+To change the shortcuts, edit the `sbtns([...])` list in `local/lib/kbshell/dashboard.py`. Each entry is an icon, a tooltip and a command.
+
 ## Requirements
 
 - **Hyprland 0.56+** with the **Lua config** (`hyprland.lua`)
@@ -68,7 +114,8 @@ The typhoon passed and I kept the desktop. I hope it works for you too.
 sudo pacman -S --needed hyprland hyprpaper hypridle hyprlock hyprpolkitagent \
   python-gobject gtk4 gtk4-layer-shell gjs jq imagemagick grim slurp \
   brightnessctl networkmanager libnotify playerctl wireplumber \
-  cmake gcc git pkgconf ttf-jetbrains-mono-nerd adwaita-fonts
+  cmake gcc git pkgconf ttf-jetbrains-mono-nerd adwaita-fonts \
+  python-icalendar python-recurring-ical-events wf-recorder bluez-utils
 yay -S ags-hyprpanel-git
 ```
 
@@ -108,8 +155,8 @@ Copy your files back from `~/.oxblood-backup-<date>/`.
 - **Monitor scale**: `hl.monitor(... scale = 1.5 ...)` near the top of `hyprland.lua` (set for a 2880×1800 laptop panel).
 - **Keyboard layout**: `kb_layout = "us"` in `hyprland.lua`.
 - **Colors**: HyprPanel colors are in `config/hyprpanel/config.json` (`theme.*`). Window borders are in `hyprland.lua`, popups in `local/lib/kbshell/base.py`.
-- **Dashboard shortcuts**: `menus.dashboard.shortcuts.*` in `config/hyprpanel/config.json`.
-- **Calendar / Join button**: optional. Put a published Outlook/Google **ICS link** in `~/.config/kb-calendar/outlook.ics.url` (`chmod 600` it). Without it the bar just says "No schedule for today".
+- **Dashboard shortcuts**: the `sbtns([...])` list in `local/lib/kbshell/dashboard.py` (see [Dashboard](#dashboard)).
+- **Calendar / Join button**: see [Calendar & schedule](#calendar--schedule). Without a link the bar just says *No schedule for today*.
 
 ## Keybinds
 
