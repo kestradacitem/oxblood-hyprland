@@ -77,3 +77,9 @@ window#bar-0, window#bar-1 {
    whenever a tray app started (and shrink when it quit), shifting every window. This rule covers
    icons without a custom glyph. */
 .systray-icon { font-size: 1.0em; }
+.systray-icon { font-size: 1.0em; }
+
+/* 2026-10-07: WinApps indicator (visible only while the Windows VM runs) */
+.cmodule-winapps { background: #120a0a;
+  .bar-button-icon { color: #c41e2a; }
+  .bar-button-label { color: #e8dede; } }

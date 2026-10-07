@@ -364,7 +364,10 @@ static void hkMouseMove(Layout::Supplementary::CDragStateController* self, const
             self->m_beginDragSizeXY     = sz;
             lastPos                     = self->m_beginDragPositionXY;
             unlink(maxFile(w).c_str());
-        }
+        } else if (armed)
+            return; // under the 8 px threshold: keep the maximized window put. hyprbars starts a move on button
+                    // press (GTK waits for its own drag threshold), so a click on the bar nudged Thorium a few px
+                    // and left a gap at the screen edge (2026-10-06)
     }
     ((origMouseMove)g_dragHook->m_original)(self, mouse);
 }

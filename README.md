@@ -93,6 +93,7 @@ From left to right:
 | Center | **Next meeting today** with a countdown | 8-day agenda |
 | Center | **Join button**, only from **15 minutes before** an online meeting until it ends | Opens Teams / Zoom / Meet directly |
 | Right | Tray icons, volume (scroll to change), Wi-Fi, Bluetooth, battery | Dashboard / quick settings |
+| Right | **Windows logo**, only while a [WinApps](https://github.com/winapps-org/winapps) Windows VM is running | Dashboard (Containers) |
 | Right | **Your avatar and name** | Dashboard |
 
 ## Calendar & schedule
@@ -135,6 +136,7 @@ Click your name or the status icons at the top right of the bar. Everything you 
 | **Toggles** | Wi-Fi, Bluetooth, Do Not Disturb, speaker mute, mic mute. Bright red = on, dim = off. |
 | **Folders** | Downloads, Documents, Videos, Pictures, Music, Home. One click opens them in your file manager. |
 | **System** | Live CPU, memory and disk bars. |
+| **Containers** | Every Docker container with its status (`up 5 minutes`, `stopped 6 days`). **■ / ▶** turns it off or starts it, **↻** restarts it. Click a running container to open its web UI in your browser: `http://localhost:<port>`, or the `https://localhost:<port>` address if a Caddy site in `/etc/caddy/Caddyfile` proxies that port. Docker is never woken up just to fill this row. |
 | **Notifications** | Your recent notifications with app name, how long ago, title and message. Dismiss one with **✕** or everything with **Clear all**. The list is kept by `kb-notif-log`, so it survives closing the panel. |
 
 To change the shortcuts, edit the `sbtns([...])` list in `local/lib/kbshell/dashboard.py`. Each entry is an icon, a tooltip and a command.

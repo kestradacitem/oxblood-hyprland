@@ -1,0 +1,4 @@
+#!/bin/sh
+# HyprPanel custom/winapps: prints a label only while the WinApps Windows VM (qemu in the container) is up.
+pgrep -f '^qemu-system-x86_64 ' >/dev/null && echo "Windows"
+exit 0

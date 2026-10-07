@@ -553,6 +553,7 @@
       ],
       "right": [
         "systray",
+        "custom/winapps",
         "volume",
         "network",
         "bluetooth",
@@ -572,6 +573,7 @@
       ],
       "right": [
         "systray",
+        "custom/winapps",
         "volume",
         "network",
         "bluetooth",
@@ -591,6 +593,7 @@
       ],
       "right": [
         "systray",
+        "custom/winapps",
         "volume",
         "network",
         "bluetooth",

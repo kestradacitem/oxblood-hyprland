@@ -46,5 +46,16 @@
     "actions": {
       "onLeftClick": "@HOME@/.local/bin/kb-next-meeting --open-join"
     }
+  },
+  "custom/winapps": {
+    "icon": "󰖳",
+    "label": "{text}",
+    "tooltip": "WinApps Windows is running — click for containers",
+    "execute": "@HOME@/.local/bin/kb-winapps-status",
+    "interval": 5000,
+    "hideOnEmpty": true,
+    "actions": {
+      "onLeftClick": "setsid -f @HOME@/.local/bin/kb-popup dashboard"
+    }
   }
 }
