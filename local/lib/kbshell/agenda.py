@@ -93,4 +93,4 @@ def build(win):
     threading.Thread(target=refresh, daemon=True).start()
     return card
 
-run_popup("agenda", build, edge="center", width=460)
+run_popup("agenda", build, edge="button", width=460)

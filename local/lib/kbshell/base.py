@@ -76,7 +76,7 @@ def label(text, cls=None, xalign=0, wrap=False):
 def run_popup(name, build, edge="right", width=None):
     """Full-screen transparent overlay with the card placed under the bar.
     Mouse movement never closes it; a click outside the card, Esc, or toggling again does.
-    edge: left | right | center. build(win) -> widget."""
+    edge: left | right | center | button (centred under the pointer). build(win) -> widget."""
     pidf = os.path.join(RUN, f"kbpop-{name}.pid")
     close_others(name)
     open(pidf, "w").write(str(os.getpid()))
@@ -95,8 +95,19 @@ def run_popup(name, build, edge="right", width=None):
         card = build(win)
         if width: card.set_size_request(width, -1)
         card.set_valign(Gtk.Align.START)
-        card.set_halign({"left": Gtk.Align.START, "right": Gtk.Align.END}.get(edge, Gtk.Align.CENTER))
         card.set_margin_top(bar_height() + 6); card.set_margin_start(6); card.set_margin_end(6)
+        if edge == "button" and width:
+            # centred under the bar button that was clicked (the pointer is on it), like HyprPanel's
+            # menus; kept 6 px from the screen edges
+            try:
+                cx = int(sh("hyprctl", "cursorpos").split(",")[0])
+                m = next(x for x in json.loads(sh("hyprctl", "monitors", "-j")) if x.get("focused"))
+                sw = round((m["width"] if m["transform"] % 2 == 0 else m["height"]) / m["scale"]); cx -= m["x"]
+                card.set_halign(Gtk.Align.START); card.set_margin_start(max(6, min(cx - width // 2, sw - width - 6)))
+            except Exception:
+                card.set_halign(Gtk.Align.CENTER)
+        else:
+            card.set_halign({"left": Gtk.Align.START, "right": Gtk.Align.END}.get(edge, Gtk.Align.CENTER))
         win.set_child(card)
         click = Gtk.GestureClick(); click.set_button(0)
         def pressed(g, n, x, y):
