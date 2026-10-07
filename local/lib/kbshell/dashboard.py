@@ -172,28 +172,9 @@ def build(win):
             sh("docker", verb, *t, name, timeout=180)
             cstate["busy"].discard(name); refresh()
         threading.Thread(target=work, daemon=True).start()
-    def curl(name):
-        # host ports published by the container; prefer the Caddy HTTPS front (https://localhost:<p>) if one proxies it
-        try: pb = json.loads(sh("docker", "inspect", name, "--format", "{{json .HostConfig.PortBindings}}")) or {}
-        except Exception: pb = {}
-        try: caddy = open("/etc/caddy/Caddyfile").read()
-        except Exception: caddy = ""
-        for k, v in pb.items():
-            if not k.endswith("/tcp") or k.startswith("3389/"): continue   # skip RDP
-            for b in v or []:
-                hp = b.get("HostPort")
-                if not hp: continue
-                for blk in re.finditer(r"https://localhost:(\d+)[^{]*\{(.*?)\n\}", caddy, re.S):
-                    if re.search(rf"reverse_proxy\s+(127\.0\.0\.1|localhost):{hp}\b", blk.group(2)):
-                        return f"https://localhost:{blk.group(1)}"
-                return f"http://localhost:{hp}"
-        return None
     def copen(name):
-        # synchronous on purpose: closing the popup ends the process, which would kill a worker thread
-        u = curl(name)
-        if u: spawn(f"xdg-open '{u}'")
-        else: spawn(f"notify-send --app-name=Containers '{name}' 'This container has no web port to open'")
-        win.close()
+        # kb-container-open starts the container if needed, waits for its web UI, then opens the browser
+        spawn(f"{HOME}/.local/bin/kb-container-open '{name}'"); win.close()
     def crender(rows, force=False):
         cstate["last"] = rows
         sig = (repr(rows), tuple(sorted(cstate["busy"])))
@@ -215,8 +196,8 @@ def build(win):
             if up: st.add_css_class("up")
             info.append(st)
             ib = Gtk.Button(hexpand=True); ib.add_css_class("dir"); ib.add_css_class("cinfo"); ib.set_child(info)
-            ib.set_tooltip_text("Open in browser" if up else "Stopped — press ▶ to start it first")
-            ib.connect("clicked", lambda _b, n=name, up=up: copen(n) if up else sh("notify-send", "--app-name=Containers", n, "Container is stopped — press ▶ to start it first"))
+            ib.set_tooltip_text("Open in browser" if up else "Start and open in browser")
+            ib.connect("clicked", lambda _b, n=name: copen(n))
             row.append(ib)
             b1 = Gtk.Button(label="\U000F04DB" if up else "\U000F040A"); b1.add_css_class("cbtn"); b1.set_tooltip_text("Turn off" if up else "Start")
             b1.connect("clicked", lambda _b, n=name, v=("stop" if up else "start"): cact(n, v))

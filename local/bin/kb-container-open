@@ -1,0 +1,32 @@
+#!/bin/bash
+# kb-container-open NAME — start a docker container if it is stopped, wait until its web UI answers,
+# then open it in the browser. URL: the Caddy HTTPS front (https://localhost:<p>) if /etc/caddy/Caddyfile
+# proxies the container's host port, else http://localhost:<hostport>. RDP (3389) is skipped.
+name="$1"; [ -n "$name" ] || { echo "usage: kb-container-open NAME" >&2; exit 2; }
+note() { notify-send --app-name=Containers --urgency=low "$name" "$1"; }
+url=$(docker inspect "$name" --format '{{json .HostConfig.PortBindings}}' 2>/dev/null | python3 -c '
+import json, re, sys
+pb = json.load(sys.stdin) or {}
+try: caddy = open("/etc/caddy/Caddyfile").read()
+except Exception: caddy = ""
+for k, v in pb.items():
+    if not k.endswith("/tcp") or k.startswith("3389/"): continue
+    for b in v or []:
+        hp = b.get("HostPort")
+        if not hp: continue
+        for blk in re.finditer(r"https://localhost:(\d+)[^{]*\{(.*?)\n\}", caddy, re.S):
+            if re.search(rf"reverse_proxy\s+(127\.0\.0\.1|localhost):{hp}\b", blk.group(2)):
+                print(f"https://localhost:{blk.group(1)}"); sys.exit()
+        print(f"http://localhost:{hp}"); sys.exit()
+')
+[ -n "$url" ] || { note "This container has no web port to open"; exit 1; }
+if [ "$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null)" != running ]; then
+    note "Starting…"
+    docker start "$name" >/dev/null || { note "Could not start the container"; exit 1; }
+    for _ in $(seq 90); do
+        code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 2 "$url")
+        [[ "$code" =~ ^[23] ]] && break
+        sleep 1
+    done
+fi
+exec xdg-open "$url"
