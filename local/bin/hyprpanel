@@ -17,7 +17,17 @@ old = """        if (isPrimaryClick(event)) {
           menu?.popup_at_widget(self, Gdk.Gravity.NORTH, Gdk.Gravity.SOUTH, null);
         }"""
 new = """        if (isPrimaryClick(event)) {
-          if (menu) { menu.popup_at_widget(self, Gdk.Gravity.NORTH, Gdk.Gravity.SOUTH, null); } else { item.activate(0, 0); }
+          if (menu) {
+            // kb: open 6 px below the BAR (not the button) and keep 6 px from the screen edges,
+            // like the kbshell popups and the other bar menus
+            const top = self.get_toplevel(), a = self.get_allocation();
+            const [, bx, by] = self.translate_coordinates(top, 0, 0);
+            const sw = top.get_allocated_width(), mw = menu.get_preferred_width()[1];
+            const left = bx + a.width / 2 - mw / 2;
+            menu.rect_anchor_dy = top.get_allocated_height() - (by + a.height) + 6;
+            menu.rect_anchor_dx = left + mw > sw - 6 ? Math.round(sw - 6 - mw - left) : left < 6 ? Math.round(6 - left) : 0;
+            menu.popup_at_widget(self, Gdk.Gravity.SOUTH, Gdk.Gravity.NORTH, null);
+          } else { item.activate(0, 0); }
         }
         if (isSecondaryClick(event)) {
           item.activate(0, 0);
