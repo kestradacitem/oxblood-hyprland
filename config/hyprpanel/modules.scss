@@ -83,3 +83,8 @@ window#bar-0, window#bar-1 {
 .cmodule-winapps { background: #120a0a;
   .bar-button-icon { color: #c41e2a; }
   .bar-button-label { color: #e8dede; } }
+  .bar-button-label { color: #e8dede; } }
+
+/* 2026-10-07: every bar dropdown (media, calendar, volume, network, bluetooth, battery, ...) starts
+   6 px below the bar, the same gap as the kbshell popups (logo menu, dashboard, agenda: bar + 6). */
+window.dropdown-menu .dropdown-content { margin: 3px 6px 0 6px; }   /* + 6 px from the screen edge, like kbshell */
