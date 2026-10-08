@@ -37,7 +37,7 @@ fi
 # --- 2. back up and copy ---
 say "Backing up your current files to $BACKUP"
 mkdir -p "$BACKUP"
-for p in .config/hypr .config/hyprpanel .config/gtk-3.0/gtk.css .config/gtk-4.0/gtk.css .config/systemd/user/kb-autounmute.service; do
+for p in .config/hypr .config/hyprpanel .config/gtk-3.0/gtk.css .config/gtk-4.0/gtk.css .config/systemd/user/kb-autounmute.service .config/systemd/user/kb-avatar-sync.path .config/systemd/user/kb-avatar-sync.service; do
     if [ -e "$HOME/$p" ]; then mkdir -p "$BACKUP/$(dirname "$p")"; cp -a "$HOME/$p" "$BACKUP/$p"; fi
 done
 for f in "$REPO"/local/bin/*; do
@@ -65,6 +65,9 @@ cp "$REPO/wallpapers/kb-oled-arch.png" "$HOME/.local/share/backgrounds/"
 if command -v systemctl >/dev/null; then
     systemctl --user daemon-reload && systemctl --user enable --now kb-autounmute.service >/dev/null 2>&1 \
         || warn "Could not enable kb-autounmute.service (run: systemctl --user enable --now kb-autounmute)"
+    # avatar: re-sync the bar/dashboard picture when it is changed in GNOME Settings → Users (or ~/.face)
+    systemctl --user enable --now kb-avatar-sync.path >/dev/null 2>&1 \
+        || warn "Could not enable kb-avatar-sync.path (run: systemctl --user enable --now kb-avatar-sync.path)"
 fi
 
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) warn "Add ~/.local/bin to your PATH (it must come before /usr/bin so the patched 'hyprpanel' wins)";; esac

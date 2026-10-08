@@ -1,6 +1,9 @@
 #!/bin/sh
 # Copy the system user avatar (AccountsService, same as GNOME Settings → Users) into round PNGs
 # used by the kb dashboard and the HyprPanel "kb" button. Falls back to ~/.face or a generated one.
+# The bar image gets a new filename each run (avatar-bar-<time>.png) and modules.scss is repointed:
+# HyprPanel hot-reloads modules.scss but GTK caches CSS images by URL, so a same-name file stays stale.
+# Triggered at login and by kb-avatar-sync.path (AccountsService icon / ~/.face changes).
 D="$HOME/.cache/kb-qs"; mkdir -p "$D"
 U=$(busctl call org.freedesktop.Accounts /org/freedesktop/Accounts org.freedesktop.Accounts FindUserByName s "$USER" 2>/dev/null | awk '{print $2}' | tr -d '"')
 SRC=$(busctl get-property org.freedesktop.Accounts "$U" org.freedesktop.Accounts.User IconFile 2>/dev/null | sed 's/^s "//; s/"$//')
@@ -8,4 +11,10 @@ SRC=$(busctl get-property org.freedesktop.Accounts "$U" org.freedesktop.Accounts
 round() { magick "$SRC" -resize "${1}x${1}^" -gravity center -extent "${1}x${1}" \
   \( +clone -alpha extract -fill black -colorize 100 -fill white -draw "circle $(( $1/2 )),$(( $1/2 )) $(( $1/2 )),1" \) \
   -alpha off -compose CopyOpacity -composite "PNG32:$2"; }
-if [ -r "$SRC" ]; then round 256 "$D/avatar.png.tmp" && mv "$D/avatar.png.tmp" "$D/avatar.png"; round 64 "$D/avatar-bar.png.tmp" && mv "$D/avatar-bar.png.tmp" "$D/avatar-bar.png"; fi
+[ -r "$SRC" ] || exit 0
+round 256 "$D/avatar.png.tmp" && mv "$D/avatar.png.tmp" "$D/avatar.png"
+round 64 "$D/avatar-bar.png.tmp" && mv "$D/avatar-bar.png.tmp" "$D/avatar-bar.png" || exit 0
+S="$HOME/.config/hyprpanel/modules.scss"
+N="avatar-bar-$(date +%s%N).png"; cp "$D/avatar-bar.png" "$D/$N"
+sed -i "s#file://$D/avatar-bar[^\"]*\\.png#file://$D/$N#" "$S"
+for o in "$D"/avatar-bar-*.png; do [ "$o" = "$D/$N" ] || rm -f "$o"; done

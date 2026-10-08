@@ -1,0 +1,7 @@
+[Unit]
+Description=Sync user avatar into the kb dashboard and HyprPanel bar
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 1
+ExecStart=%h/.local/bin/kb-avatar-sync

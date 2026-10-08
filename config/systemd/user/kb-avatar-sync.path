@@ -1,0 +1,9 @@
+[Unit]
+Description=Re-sync bar/dashboard avatar when the user picture changes
+
+[Path]
+PathChanged=/var/lib/AccountsService/icons/%u
+PathChanged=%h/.face
+
+[Install]
+WantedBy=default.target
