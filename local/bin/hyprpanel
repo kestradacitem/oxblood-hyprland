@@ -85,6 +85,100 @@ if old in s:
     s = s.replace(old, new, 1)
 else:
     sys.stderr.write("kb hyprpanel wrapper: timestamp pattern not found, no remaining time\n")
+# media: follow the player that is actually playing (stock keeps the first-registered one,
+# e.g. an idle Thorium tab, until the user clicks the next-player button)
+old = """  _handlePlayerAdded(addedPlayer) {
+    const { ignore: ignore6, preferredPlayer } = configuration_default.menus.media;
+    if (isPlayerIgnored(addedPlayer, ignore6.get())) {
+      return;
+    }"""
+new = """  _handlePlayerAdded(addedPlayer) {
+    const { ignore: ignore6, preferredPlayer } = configuration_default.menus.media;
+    if (isPlayerIgnored(addedPlayer, ignore6.get())) {
+      return;
+    }
+    addedPlayer.connect("notify::playback-status", () => {
+      if (addedPlayer.playbackStatus === AstalMpris.PlaybackStatus.PLAYING && addedPlayer.busName !== this.activePlayer.get()?.busName) {
+        this.activePlayer.set(addedPlayer);
+      }
+    });
+    if (addedPlayer.playbackStatus === AstalMpris.PlaybackStatus.PLAYING) {
+      this.activePlayer.set(addedPlayer);
+      return;
+    }"""
+n = 0
+if old in s:
+    s = s.replace(old, new, 1); n += 1
+old = """    if (this.activePlayer.get() === void 0) {
+      for (const player of filteredPlayers) {
+        this._handlePlayerAdded(player);
+      }
+    }"""
+new = """    for (const player of filteredPlayers) {
+      const keep = this.activePlayer.get();
+      this._handlePlayerAdded(player);
+      if (keep !== void 0 && player.playbackStatus !== AstalMpris.PlaybackStatus.PLAYING) this.activePlayer.set(keep);
+    }"""
+if old in s:
+    s = s.replace(old, new, 1); n += 1
+old = """  activePlayer.set(filteredPlayers[0]);
+  const songIcon = Variable("");"""
+new = """  activePlayer.set(filteredPlayers.find((pl) => pl.playbackStatus === AstalMpris3.PlaybackStatus.PLAYING) ?? activePlayer.get() ?? filteredPlayers[0]);
+  const songIcon = Variable("");"""
+if old in s:
+    s = s.replace(old, new, 1); n += 1
+if n != 3:
+    sys.stderr.write(f"kb hyprpanel wrapper: follow-playing patch applied {n}/3\n")
+# tray: build the menu fresh from the app's dbusmenu on every click. libastal-tray rebuilds
+# items on ItemsPropertiesUpdated with an unprefixed action ("id-3" instead of "dbusmenu.id-3"),
+# so e.g. Spotify's "Show Spotify" stays greyed out after its window was shown/hidden once.
+old = """var createMenu = (menuModel, actionGroup) => {"""
+new = """var kbDbusMenu = (item) => {
+  try {
+    const bus = (item.item_id ?? "").split("/")[0], path = item.menu_path;
+    if (!bus || !path) return null;
+    const call = (m, args, type) => Gio.DBus.session.call_sync(bus, path, "com.canonical.dbusmenu", m, args, type ? new GLib.VariantType(type) : null, Gio.DBusCallFlags.NONE, 1000, null);
+    try { call("AboutToShow", new GLib.Variant("(i)", [0]), null); } catch (e) {}
+    const [, root] = call("GetLayout", new GLib.Variant("(iias)", [0, -1, []]), "(u(ia{sv}av))").recursiveUnpack();
+    const build = (children) => {
+      const m = new Gtk4.Menu();
+      for (const [id, pr, sub] of children) {
+        if (pr.visible === false) continue;
+        let mi;
+        if (pr.type === "separator") mi = new Gtk4.SeparatorMenuItem();
+        else {
+          const label = pr.label ?? "";
+          if (pr["toggle-type"] === "checkmark" || pr["toggle-type"] === "radio") {
+            mi = Gtk4.CheckMenuItem.new_with_mnemonic(label); mi.set_draw_as_radio(pr["toggle-type"] === "radio"); mi.set_active(pr["toggle-state"] === 1);
+          } else mi = Gtk4.MenuItem.new_with_mnemonic(label);
+          if (pr.enabled === false) mi.set_sensitive(false);
+          if (sub.length) mi.set_submenu(build(sub));
+          else mi.connect("activate", () => Gio.DBus.session.call(bus, path, "com.canonical.dbusmenu", "Event", new GLib.Variant("(isvu)", [id, "clicked", new GLib.Variant("s", ""), 0]), null, Gio.DBusCallFlags.NONE, 1000, null, null));
+        }
+        m.append(mi);
+      }
+      m.show_all();
+      return m;
+    };
+    return build(root[2]);
+  } catch (e) { console.error(`kb tray menu for ${item.id}: ${e}`); return null; }
+};
+var createMenu = (menuModel, actionGroup) => {"""
+n = 0
+if old in s:
+    s = s.replace(old, new, 1); n += 1
+old = """        if (isPrimaryClick(event)) {
+          if (menu) {
+            // kb: open 6 px"""
+new = """        if (isPrimaryClick(event)) {
+          const fresh = kbDbusMenu(item);
+          if (fresh) { menu?.destroy(); menu = fresh; }
+          if (menu) {
+            // kb: open 6 px"""
+if old in s:
+    s = s.replace(old, new, 1); n += 1
+if n != 2:
+    sys.stderr.write(f"kb hyprpanel wrapper: fresh tray menu patch applied {n}/2\\n")
 open(p, "w").write(s)
 PY
 LD_PRELOAD="" exec /usr/bin/gjs -m "$f"

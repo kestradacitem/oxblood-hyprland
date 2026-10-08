@@ -72,9 +72,10 @@ The small `kb-minimize` plugin, the `edge-snap.py` script and `kb-maximize` do t
 | `config/hyprpanel/` | HyprPanel theme (oxblood palette), custom modules (calendar, Join-meeting button, status) |
 | `config/gtk-3.0`, `gtk-4.0` | GTK accent color so apps match |
 | `config/systemd/user/kb-autounmute.service` | Unmutes the speaker or mic as soon as you change its volume (the mute key alone still mutes). Enabled by `install.sh` |
-| `local/bin/hyprpanel` | Wrapper that patches HyprPanel at launch: left-click tray menus, scrolling song title, **time-left display** |
+| `config/systemd/user/kb-avatar-sync.path` | Updates the bar and dashboard avatar as soon as you change your picture in GNOME Settings → Users. Enabled by `install.sh` |
+| `local/bin/hyprpanel` | Wrapper that patches HyprPanel at launch: left-click tray menus (rebuilt fresh on every click), scrolling song title, **time-left display**, media follows whichever player is actually playing |
 | `local/bin/kb-*` | Maximize/restore, close, lock (no fade), popups, avatar, next-meeting helpers |
-| `local/lib/kbshell/` | GTK4 layer-shell popups: dock, app grid, dashboard, quick settings, agenda, snap preview |
+| `local/lib/kbshell/` | GTK4 layer-shell popups: dock (right-click an icon for Dash-to-Dock style windows / New Window / Pin / Quit menu), app grid, dashboard, quick settings, agenda, snap preview |
 | `plugins/kb-minimize/` | Hyprland plugin: GNOME-like maximize, drag-to-restore, snap, damage fix for flicker |
 | `system/kb-greeter/`, `system/greetd/` | The login screen (greetd + cage) and its config template |
 | `examples/demo-calendar.ics` | Made-up calendar for trying the agenda |
