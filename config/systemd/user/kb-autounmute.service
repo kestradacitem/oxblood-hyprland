@@ -1,0 +1,12 @@
+[Unit]
+Description=Auto-unmute speaker and mic when volume changes
+After=pipewire-pulse.service wireplumber.service
+Wants=pipewire-pulse.service
+
+[Service]
+ExecStart=%h/.local/bin/kb-autounmute
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

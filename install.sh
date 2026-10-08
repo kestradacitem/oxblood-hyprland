@@ -22,7 +22,7 @@ say()  { printf '\033[1;31m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
 
 # --- 1. dependencies (warn only) ---
-need=(Hyprland hyprctl hyprpaper hypridle hyprlock hyprpanel gjs python3 jq magick grim slurp brightnessctl nmcli notify-send)
+need=(Hyprland hyprctl hyprpaper hypridle hyprlock hyprpanel gjs python3 jq magick grim slurp brightnessctl nmcli notify-send pactl)
 missing=()
 for c in "${need[@]}"; do command -v "$c" >/dev/null 2>&1 || missing+=("$c"); done
 python3 -c 'import gi; gi.require_version("Gtk","4.0")' 2>/dev/null || missing+=("python-gobject + gtk4")
@@ -37,7 +37,7 @@ fi
 # --- 2. back up and copy ---
 say "Backing up your current files to $BACKUP"
 mkdir -p "$BACKUP"
-for p in .config/hypr .config/hyprpanel .config/gtk-3.0/gtk.css .config/gtk-4.0/gtk.css; do
+for p in .config/hypr .config/hyprpanel .config/gtk-3.0/gtk.css .config/gtk-4.0/gtk.css .config/systemd/user/kb-autounmute.service; do
     if [ -e "$HOME/$p" ]; then mkdir -p "$BACKUP/$(dirname "$p")"; cp -a "$HOME/$p" "$BACKUP/$p"; fi
 done
 for f in "$REPO"/local/bin/*; do
@@ -59,6 +59,13 @@ install_tree "$REPO/local/lib" "$HOME/.local/lib"
 chmod +x "$HOME"/.local/bin/{hyprpanel,hl-dsp,kb-*} "$HOME"/.config/hypr/scripts/* 2>/dev/null || true
 mkdir -p "$HOME/.local/share/backgrounds"
 cp "$REPO/wallpapers/kb-oled-arch.png" "$HOME/.local/share/backgrounds/"
+
+# audio: unmute the speaker/mic whenever its volume is changed (default.target, because Hyprland never
+# starts graphical-session.target)
+if command -v systemctl >/dev/null; then
+    systemctl --user daemon-reload && systemctl --user enable --now kb-autounmute.service >/dev/null 2>&1 \
+        || warn "Could not enable kb-autounmute.service (run: systemctl --user enable --now kb-autounmute)"
+fi
 
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) warn "Add ~/.local/bin to your PATH (it must come before /usr/bin so the patched 'hyprpanel' wins)";; esac
 

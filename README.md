@@ -71,6 +71,7 @@ The small `kb-minimize` plugin, the `edge-snap.py` script and `kb-maximize` do t
 | `config/hypr/scripts/` | Edge snapping with preview, snap/maximize helpers, power menu, screenshots |
 | `config/hyprpanel/` | HyprPanel theme (oxblood palette), custom modules (calendar, Join-meeting button, status) |
 | `config/gtk-3.0`, `gtk-4.0` | GTK accent color so apps match |
+| `config/systemd/user/kb-autounmute.service` | Unmutes the speaker or mic as soon as you change its volume (the mute key alone still mutes). Enabled by `install.sh` |
 | `local/bin/hyprpanel` | Wrapper that patches HyprPanel at launch: left-click tray menus, scrolling song title, **time-left display** |
 | `local/bin/kb-*` | Maximize/restore, close, lock (no fade), popups, avatar, next-meeting helpers |
 | `local/lib/kbshell/` | GTK4 layer-shell popups: dock, app grid, dashboard, quick settings, agenda, snap preview |
